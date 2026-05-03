@@ -50,6 +50,9 @@ func TestSetAndGetUploadState(t *testing.T) {
 	if got.ContentHash != "abc123" {
 		t.Errorf("ContentHash = %q, want abc123", got.ContentHash)
 	}
+	if !got.UploadedAt.Equal(state.UploadedAt) {
+		t.Errorf("UploadedAt = %v, want %v", got.UploadedAt, state.UploadedAt)
+	}
 }
 
 func TestGetUploadState_NotFound(t *testing.T) {
@@ -76,7 +79,10 @@ func TestSetUploadState_Upsert(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, _ := l.GetUploadState("skill-a", "claudeai")
+	got, err := l.GetUploadState("skill-a", "claudeai")
+	if err != nil {
+		t.Fatalf("GetUploadState after upsert: %v", err)
+	}
 	if got.Version != "v1.1.0" {
 		t.Errorf("after upsert: Version = %q, want v1.1.0", got.Version)
 	}

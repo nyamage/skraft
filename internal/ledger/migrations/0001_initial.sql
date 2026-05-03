@@ -1,9 +1,5 @@
-CREATE TABLE IF NOT EXISTS metadata (
-    key   TEXT PRIMARY KEY,
-    value TEXT NOT NULL
-);
-
-INSERT OR IGNORE INTO metadata (key, value) VALUES ('schema_version', '0');
+-- metadata table and schema_version row are bootstrapped by ledger.migrate()
+-- before any migration runs. They are not re-created here.
 
 CREATE TABLE IF NOT EXISTS upload_state (
     skill_name   TEXT NOT NULL,

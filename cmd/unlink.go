@@ -12,7 +12,10 @@ import (
 var unlinkCmd = &cobra.Command{
 	Use:   "unlink [skill]",
 	Short: "Remove skill symlinks from Claude Code's skills directory",
-	Args:  cobra.MaximumNArgs(1),
+	Long: `Removes symlinks from ~/.claude/skills/<skill> for each skill.
+With no argument, unlinks all discovered skills.
+Non-symlink entries are skipped to avoid accidental data loss.`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repoRoot, err := findRepoRoot()
 		if err != nil {

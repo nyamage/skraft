@@ -3,6 +3,7 @@ package ledger
 import (
 	"database/sql"
 	"embed"
+	"errors"
 	"fmt"
 	"time"
 
@@ -66,7 +67,7 @@ func (l *Ledger) GetUploadState(skillName, target string) (*UploadState, error) 
 	var s UploadState
 	var uploadedAt string
 	err := row.Scan(&s.SkillName, &s.Target, &s.Version, &s.ContentHash, &uploadedAt)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

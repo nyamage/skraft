@@ -15,8 +15,10 @@ func TestLoad_Defaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cfg.SkillsDir == "" {
-		t.Error("SkillsDir should have a default value")
+	home, _ := os.UserHomeDir()
+	want := filepath.Join(home, ".claude", "skills")
+	if cfg.SkillsDir != want {
+		t.Errorf("SkillsDir = %q, want %q", cfg.SkillsDir, want)
 	}
 }
 
@@ -45,5 +47,13 @@ func TestSkraftDirPath(t *testing.T) {
 	want := "/some/repo/.skraft"
 	if got := config.SkraftDirPath(dir); got != want {
 		t.Errorf("SkraftDirPath = %q, want %q", got, want)
+	}
+}
+
+func TestLedgerPath(t *testing.T) {
+	dir := "/some/repo"
+	want := "/some/repo/.skraft/ledger.db"
+	if got := config.LedgerPath(dir); got != want {
+		t.Errorf("LedgerPath = %q, want %q", got, want)
 	}
 }

@@ -32,6 +32,7 @@ go.work.sum
 .DS_Store
 
 # skraft
+.skraft/config.toml
 .skraft/ledger.db
 .skraft/ledger.db-shm
 .skraft/ledger.db-wal

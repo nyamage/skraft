@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"text/tabwriter"
 
 	"github.com/nyamage/skraft/internal/config"
+	"github.com/nyamage/skraft/internal/skill"
 	"github.com/spf13/cobra"
 )
 
@@ -109,6 +111,7 @@ func runAdoptList(skillsDir string) error {
 		return fmt.Errorf("read %s: %w", skillsDir, err)
 	}
 
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
 	var found int
 	for _, entry := range entries {
 		// Skip symlinks — already managed by skraft.
@@ -122,9 +125,11 @@ func runAdoptList(skillsDir string) error {
 		if _, err := os.Stat(skillMD); err != nil {
 			continue
 		}
-		fmt.Println(entry.Name())
+		fm, _ := skill.ParseFrontmatter(skillMD)
+		fmt.Fprintf(w, "%s\t%s\n", entry.Name(), fm.Description)
 		found++
 	}
+	w.Flush()
 	if found == 0 {
 		fmt.Fprintln(os.Stderr, "no unmanaged skills found")
 	}

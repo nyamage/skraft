@@ -42,8 +42,11 @@ func TestRepoRoot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if got != dir {
-		t.Errorf("RepoRoot(%q) = %q, want %q", sub, got, dir)
+	// Resolve symlinks on both sides (on macOS /tmp → /private/tmp)
+	wantResolved, _ := filepath.EvalSymlinks(dir)
+	gotResolved, _ := filepath.EvalSymlinks(got)
+	if gotResolved != wantResolved {
+		t.Errorf("RepoRoot(%q) = %q, want %q (resolved: %q)", sub, got, dir, wantResolved)
 	}
 }
 

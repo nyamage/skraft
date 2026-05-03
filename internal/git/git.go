@@ -3,44 +3,16 @@ package git
 import (
 	"fmt"
 	"os/exec"
-	"path/filepath"
 	"strings"
 )
 
 // RepoRoot returns the git repository root detected from dir.
-// The returned path matches the symlink form of the input dir (important on
-// macOS where /var is a symlink to /private/var but os.TempDir returns /var/...).
 func RepoRoot(dir string) (string, error) {
 	out, err := exec.Command("git", "-C", dir, "rev-parse", "--show-toplevel").Output()
 	if err != nil {
 		return "", fmt.Errorf("not a git repository: %w", err)
 	}
-	root := strings.TrimSpace(string(out))
-	// git resolves symlinks; map the result back to the caller's path form.
-	// Resolve both dir and root to their canonical forms, then reconstruct
-	// the root using dir's prefix when they share the same canonical path.
-	resolvedDir, err2 := filepath.EvalSymlinks(dir)
-	if err2 == nil && resolvedDir != dir {
-		// root uses the resolved form; replace that prefix with the original dir prefix.
-		// Find the common ancestor: walk up dir to find what matches root.
-		resolvedRoot, err3 := filepath.EvalSymlinks(root)
-		if err3 == nil {
-			// resolvedRoot and resolvedDir should share a prefix
-			// Reconstruct root by replacing the resolved prefix with original.
-			// The difference between resolvedDir and dir gives us the mapping.
-			if len(resolvedDir) <= len(resolvedRoot) && resolvedRoot[:len(resolvedDir)] == resolvedDir {
-				root = dir + resolvedRoot[len(resolvedDir):]
-			} else if len(resolvedRoot) <= len(resolvedDir) && resolvedDir[:len(resolvedRoot)] == resolvedRoot {
-				// root is a parent of dir; find how much of dir to keep
-				suffix := resolvedDir[len(resolvedRoot):]
-				original := dir
-				if len(original) > len(suffix) {
-					root = original[:len(original)-len(suffix)]
-				}
-			}
-		}
-	}
-	return root, nil
+	return strings.TrimSpace(string(out)), nil
 }
 
 // LatestTag returns the most recent semver tag reachable from HEAD,
@@ -67,15 +39,27 @@ func ShortSHA(repoRoot string) (string, error) {
 // At a tag: "v1.2.0". Ahead of a tag: "v1.2.0-3-gabcdef".
 // No tags: "untagged-abcdef".
 func Version(repoRoot string) (string, error) {
-	out, err := exec.Command("git", "-C", repoRoot, "describe", "--tags", "--always").Output()
+	out, err := exec.Command("git", "-C", repoRoot, "describe", "--tags", "--long").Output()
 	if err != nil {
-		// --always falls back to SHA; if that also fails, use ShortSHA
+		// No tags — fall back to short SHA with "untagged-" prefix
 		return ShortSHA(repoRoot)
 	}
+	// Output format: <tag>-<N>-g<sha>  (N = commits ahead, sha = abbreviated)
+	// Tags may contain "-", so parse backwards from the end.
 	v := strings.TrimSpace(string(out))
-	// If the result looks like a bare SHA (no v prefix, no hyphen-number), it has no tags
-	if !strings.HasPrefix(v, "v") && !strings.Contains(v, "-") {
+	lastDash := strings.LastIndex(v, "-")
+	if lastDash < 0 {
 		return "untagged-" + v, nil
+	}
+	secondLastDash := strings.LastIndex(v[:lastDash], "-")
+	if secondLastDash < 0 {
+		return "untagged-" + v, nil
+	}
+	n := v[secondLastDash+1 : lastDash]
+	tag := v[:secondLastDash]
+	if n == "0" {
+		// Exactly at the tag
+		return tag, nil
 	}
 	return v, nil
 }

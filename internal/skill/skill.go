@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -168,9 +169,8 @@ func Pack(s Skill, destPath string) error {
 	defer f.Close()
 
 	w := zip.NewWriter(f)
-	defer w.Close()
 
-	return filepath.WalkDir(s.Dir, func(path string, d fs.DirEntry, err error) error {
+	walkErr := filepath.WalkDir(s.Dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -195,11 +195,18 @@ func Pack(s Skill, destPath string) error {
 		if err != nil {
 			return err
 		}
-		data, err := os.ReadFile(path)
+		src, err := os.Open(path)
 		if err != nil {
 			return err
 		}
-		_, err = fw.Write(data)
+		defer src.Close()
+		_, err = io.Copy(fw, src)
 		return err
 	})
+	if walkErr != nil {
+		w.Close()
+		return walkErr
+	}
+	// Close flushes the zip central directory — capture its error.
+	return w.Close()
 }

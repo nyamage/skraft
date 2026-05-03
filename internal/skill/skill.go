@@ -1,8 +1,10 @@
 package skill
 
 import (
+	"archive/zip"
 	"bufio"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -145,4 +147,59 @@ func IsLinked(skillsDir string, s Skill) bool {
 		return false
 	}
 	return info.Mode()&os.ModeSymlink != 0
+}
+
+// excludedNames are file/directory names excluded from pack zips.
+var excludedNames = map[string]bool{
+	".git":         true,
+	".DS_Store":    true,
+	"node_modules": true,
+	".gitignore":   true,
+	"dist":         true,
+}
+
+// Pack creates a zip archive of the skill directory at destPath.
+// Excludes .git, .DS_Store, node_modules, and similar non-distributable files.
+func Pack(s Skill, destPath string) error {
+	f, err := os.Create(destPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	w := zip.NewWriter(f)
+	defer w.Close()
+
+	return filepath.WalkDir(s.Dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if excludedNames[d.Name()] {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		rel, err := filepath.Rel(s.Dir, path)
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+
+		// Use forward slashes in zip entries (cross-platform)
+		zipName := filepath.ToSlash(rel)
+		fw, err := w.Create(zipName)
+		if err != nil {
+			return err
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		_, err = fw.Write(data)
+		return err
+	})
 }

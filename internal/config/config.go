@@ -1,6 +1,8 @@
 package config
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -19,8 +21,13 @@ type Config struct {
 }
 
 // DefaultConfig returns config with sensible defaults.
+// If the user's home directory cannot be determined, SkillsDir is set to
+// ".claude/skills" relative to the process working directory.
 func DefaultConfig() Config {
-	home, _ := os.UserHomeDir()
+	home, err := os.UserHomeDir()
+	if err != nil {
+		home = ""
+	}
 	return Config{
 		SkillsDir: filepath.Join(home, ".claude", "skills"),
 	}
@@ -32,7 +39,7 @@ func Load(repoRoot string) (Config, error) {
 	cfg := DefaultConfig()
 	path := filepath.Join(repoRoot, SkraftDir, ConfigFile)
 	if _, err := toml.DecodeFile(path, &cfg); err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, fs.ErrNotExist) {
 			return cfg, nil
 		}
 		return cfg, err

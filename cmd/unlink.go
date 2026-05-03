@@ -38,9 +38,12 @@ var unlinkCmd = &cobra.Command{
 		for _, s := range skills {
 			linkPath := skill.LinkPath(cfg.SkillsDir, s)
 			info, err := os.Lstat(linkPath)
-			if os.IsNotExist(err) {
-				fmt.Printf("skipped %s (not linked)\n", s.Name)
-				continue
+			if err != nil {
+				if os.IsNotExist(err) {
+					fmt.Printf("skipped %s (not linked)\n", s.Name)
+					continue
+				}
+				return fmt.Errorf("stat %s: %w", linkPath, err)
 			}
 			if info.Mode()&os.ModeSymlink == 0 {
 				fmt.Printf("skipped %s (%s is not a symlink)\n", s.Name, linkPath)

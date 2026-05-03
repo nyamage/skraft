@@ -44,7 +44,9 @@ Safe to run multiple times — does not overwrite existing config.`,
 		if err != nil {
 			return fmt.Errorf("initialize ledger: %w", err)
 		}
-		l.Close()
+		if err := l.Close(); err != nil {
+			return fmt.Errorf("close ledger: %w", err)
+		}
 		fmt.Println("initialized .skraft/ledger.db")
 
 		// Update .gitignore
@@ -74,6 +76,9 @@ func ensureGitignore(repoRoot string) error {
 			existing[strings.TrimSpace(scanner.Text())] = true
 		}
 		f.Close()
+		if err := scanner.Err(); err != nil {
+			return fmt.Errorf("read .gitignore: %w", err)
+		}
 	}
 
 	var toAdd []string

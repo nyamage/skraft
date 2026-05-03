@@ -49,7 +49,9 @@ With no argument, links all discovered skills.`,
 				if info.Mode()&os.ModeSymlink == 0 {
 					return fmt.Errorf("%s exists and is not a symlink; remove it manually", linkPath)
 				}
-				os.Remove(linkPath)
+				if err := os.Remove(linkPath); err != nil {
+					return fmt.Errorf("remove stale symlink %s: %w", linkPath, err)
+				}
 			}
 			if err := os.Symlink(s.Dir, linkPath); err != nil {
 				return fmt.Errorf("symlink %s: %w", s.Name, err)

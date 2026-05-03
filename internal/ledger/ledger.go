@@ -113,20 +113,43 @@ func (l *Ledger) migrate() error {
 		return fmt.Errorf("read migrations: %w", err)
 	}
 
-	for i, entry := range entries {
-		migrationNum := i + 1
+	for _, entry := range entries {
+		name := entry.Name()
+		// Parse migration number from leading 4-digit prefix (e.g. "0001_initial.sql" → 1).
+		if len(name) < 4 {
+			return fmt.Errorf("migration filename %q does not start with a 4-digit number", name)
+		}
+		var migrationNum int
+		for _, ch := range name[:4] {
+			if ch < '0' || ch > '9' {
+				return fmt.Errorf("migration filename %q does not start with a 4-digit number", name)
+			}
+			migrationNum = migrationNum*10 + int(ch-'0')
+		}
 		if migrationNum <= currentVersion {
 			continue
 		}
-		sqlBytes, err := migrationsFS.ReadFile("migrations/" + entry.Name())
+
+		sqlBytes, err := migrationsFS.ReadFile("migrations/" + name)
 		if err != nil {
-			return fmt.Errorf("read migration %s: %w", entry.Name(), err)
+			return fmt.Errorf("read migration %s: %w", name, err)
 		}
-		if _, err := l.db.Exec(string(sqlBytes)); err != nil {
-			return fmt.Errorf("run migration %s: %w", entry.Name(), err)
+
+		// Apply migration and update schema_version atomically.
+		tx, err := l.db.Begin()
+		if err != nil {
+			return fmt.Errorf("begin migration tx %s: %w", name, err)
 		}
-		if _, err := l.db.Exec(`UPDATE metadata SET value = ? WHERE key = 'schema_version'`, migrationNum); err != nil {
-			return fmt.Errorf("update schema_version: %w", err)
+		if _, err := tx.Exec(string(sqlBytes)); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("run migration %s: %w", name, err)
+		}
+		if _, err := tx.Exec(`UPDATE metadata SET value = ? WHERE key = 'schema_version'`, migrationNum); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("update schema_version after %s: %w", name, err)
+		}
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("commit migration %s: %w", name, err)
 		}
 	}
 	return nil

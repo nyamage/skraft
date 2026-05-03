@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,7 +14,7 @@ var adoptFrom string
 var adoptList bool
 
 var adoptCmd = &cobra.Command{
-	Use:   "adopt <name>",
+	Use:   "adopt [--list | <name>]",
 	Short: "Adopt an existing skill directory into the skraft repo",
 	Long: `Moves a skill from cfg.SkillsDir/<name> (or --from <path>) into the git
 repo root, then creates a symlink at the original location. This is the
@@ -102,9 +103,8 @@ managed by skraft (real directories with a SKILL.md, not symlinks).`,
 func runAdoptList(skillsDir string) error {
 	entries, err := os.ReadDir(skillsDir)
 	if err != nil {
-		if os.IsNotExist(err) {
-			fmt.Printf("skills dir %s does not exist\n", skillsDir)
-			return nil
+		if errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("skills dir %s does not exist", skillsDir)
 		}
 		return fmt.Errorf("read %s: %w", skillsDir, err)
 	}
@@ -126,7 +126,7 @@ func runAdoptList(skillsDir string) error {
 		found++
 	}
 	if found == 0 {
-		fmt.Println("no unmanaged skills found")
+		fmt.Fprintln(os.Stderr, "no unmanaged skills found")
 	}
 	return nil
 }
@@ -134,5 +134,6 @@ func runAdoptList(skillsDir string) error {
 func init() {
 	adoptCmd.Flags().StringVar(&adoptFrom, "from", "", "source path (default: cfg.SkillsDir/<name>)")
 	adoptCmd.Flags().BoolVar(&adoptList, "list", false, "list unmanaged skills in cfg.SkillsDir")
+	adoptCmd.MarkFlagsMutuallyExclusive("list", "from")
 	rootCmd.AddCommand(adoptCmd)
 }

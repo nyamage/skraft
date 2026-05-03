@@ -21,6 +21,9 @@ skraft pack [skill]    # Generate dist/<skill>-<version>.zip
 skraft mark-uploaded   # Record that a skill was uploaded to Claude.ai
 skraft sync            # Check or fix drift (--check / --fix)
 skraft config get/set  # Read or write config values
+skraft new <name>      # Scaffold a new skill in the repo and link immediately
+skraft adopt <name>    # Move an existing skill from skills_dir into the repo
+skraft adopt --list    # List unmanaged skills in skills_dir
 ```
 
 ## Project Structure

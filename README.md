@@ -91,8 +91,18 @@ graph TD
 
 ## インストール
 
+**Go 1.21+ がインストールされている場合:**
+
 ```bash
-# 確定後に追記予定
+go install github.com/nyamage/skraft@latest
+```
+
+**ソースからビルドする場合:**
+
+```bash
+git clone https://github.com/nyamage/skraft.git
+cd skraft
+go build -o /usr/local/bin/skraft .
 ```
 
 ## クイックスタート

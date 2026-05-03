@@ -31,6 +31,9 @@ go.work.sum
 # macOS
 .DS_Store
 
+# superpowers planning artifacts
+docs/superpowers/
+
 # skraft
 .skraft/config.toml
 .skraft/ledger.db

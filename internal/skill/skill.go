@@ -19,12 +19,14 @@ type Frontmatter struct {
 	Description  string   `yaml:"description"`
 	License      string   `yaml:"license"`
 	AllowedTools []string `yaml:"allowed-tools"`
+	Context      string   `yaml:"context"`
 }
 
 // Skill represents a discovered skill with metadata.
 type Skill struct {
 	Name        string // from frontmatter.Name or directory basename
 	Description string
+	Context     string // from frontmatter.Context; empty means inline
 	DirName     string // directory basename (used for symlink naming)
 	Dir         string // absolute path to skill directory
 	SkillMDPath string // absolute path to SKILL.md
@@ -116,6 +118,7 @@ func Discover(repoRoot string) ([]Skill, error) {
 		skills = append(skills, Skill{
 			Name:        skillName,
 			Description: fm.Description,
+			Context:     fm.Context,
 			DirName:     name,
 			Dir:         filepath.Join(repoRoot, name),
 			SkillMDPath: skillMDPath,
@@ -209,4 +212,24 @@ func Pack(s Skill, destPath string) error {
 	}
 	// Close flushes the zip central directory — capture its error.
 	return w.Close()
+}
+
+// DiscoverTestFiles returns paths of *.yaml files inside skillDir/tests/.
+// Returns nil (not error) if the tests/ directory does not exist.
+func DiscoverTestFiles(skillDir string) ([]string, error) {
+	testsDir := filepath.Join(skillDir, "tests")
+	entries, err := os.ReadDir(testsDir)
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("read %s: %w", testsDir, err)
+	}
+	var paths []string
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".yaml") {
+			paths = append(paths, filepath.Join(testsDir, e.Name()))
+		}
+	}
+	return paths, nil
 }

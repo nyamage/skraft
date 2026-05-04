@@ -89,3 +89,72 @@ func TestDiscover_FallbackDirName(t *testing.T) {
 		t.Errorf("Name = %q, want my-skill (dir fallback)", skills[0].Name)
 	}
 }
+
+func TestParseFrontmatter_Context(t *testing.T) {
+	dir := t.TempDir()
+	skillMD := filepath.Join(dir, "SKILL.md")
+	content := "---\nname: my-skill\ncontext: fork\n---\n# body\n"
+	if err := os.WriteFile(skillMD, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+	fm, err := skill.ParseFrontmatter(skillMD)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if fm.Context != "fork" {
+		t.Errorf("Context = %q, want %q", fm.Context, "fork")
+	}
+}
+
+func TestDiscoverTestFiles_Basic(t *testing.T) {
+	dir := t.TempDir()
+	testsDir := filepath.Join(dir, "tests")
+	if err := os.MkdirAll(testsDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"trigger.yaml", "negative.yaml", "notes.txt"} {
+		if err := os.WriteFile(filepath.Join(testsDir, name), []byte(""), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	paths, err := skill.DiscoverTestFiles(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(paths) != 2 {
+		t.Errorf("len(paths) = %d, want 2; paths=%v", len(paths), paths)
+	}
+}
+
+func TestDiscoverTestFiles_NoTestsDir(t *testing.T) {
+	dir := t.TempDir()
+	paths, err := skill.DiscoverTestFiles(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if paths != nil {
+		t.Errorf("expected nil, got %v", paths)
+	}
+}
+
+func TestDiscover_ContextPropagated(t *testing.T) {
+	dir := t.TempDir()
+	skillDir := filepath.Join(dir, "my-skill")
+	if err := os.MkdirAll(skillDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	content := "---\nname: my-skill\ncontext: fork\n---\n"
+	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+	skills, err := skill.Discover(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(skills) != 1 {
+		t.Fatalf("expected 1 skill, got %d", len(skills))
+	}
+	if skills[0].Context != "fork" {
+		t.Errorf("Context = %q, want %q", skills[0].Context, "fork")
+	}
+}

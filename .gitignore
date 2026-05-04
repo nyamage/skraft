@@ -34,6 +34,9 @@ go.work.sum
 # superpowers planning artifacts
 docs/superpowers/
 
+# git worktrees
+.worktrees/
+
 # skraft
 .skraft/config.toml
 .skraft/ledger.db

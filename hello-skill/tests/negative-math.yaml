@@ -1,0 +1,4 @@
+id: negative-math
+query: "1+1は?"
+expect:
+  triggered: false

@@ -1,0 +1,4 @@
+id: trigger-konnichiwa
+query: "こんにちは"
+expect:
+  triggered: true

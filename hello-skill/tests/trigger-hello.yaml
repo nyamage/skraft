@@ -1,0 +1,4 @@
+id: trigger-hello
+query: "Hello!"
+expect:
+  triggered: true

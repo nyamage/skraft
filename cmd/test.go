@@ -29,14 +29,12 @@ func init() {
 func runTest(cmd *cobra.Command, args []string) error {
 	repoRoot, err := findRepoRoot()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(2)
+		return err
 	}
 
 	claudeBin, err := exec.LookPath("claude")
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error: claude not found in PATH")
-		os.Exit(2)
+		return fmt.Errorf("claude not found in PATH")
 	}
 
 	claudeVersion, err := getClaudeVersion(claudeBin)
@@ -46,15 +44,13 @@ func runTest(cmd *cobra.Command, args []string) error {
 
 	skills, err := skill.Discover(repoRoot)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(2)
+		return err
 	}
 
 	if len(args) > 0 {
 		s := skill.Find(skills, args[0])
 		if s == nil {
-			fmt.Fprintf(os.Stderr, "Error: skill %q not found\n", args[0])
-			os.Exit(2)
+			return fmt.Errorf("skill %q not found", args[0])
 		}
 		skills = []skill.Skill{*s}
 	}
@@ -67,15 +63,13 @@ func runTest(cmd *cobra.Command, args []string) error {
 	for _, s := range skills {
 		files, err := skill.DiscoverTestFiles(s.Dir)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: discover tests for %s: %v\n", s.DirName, err)
-			os.Exit(2)
+			return fmt.Errorf("discover tests for %s: %w", s.DirName, err)
 		}
 		var cases []testcase.TestCase
 		for _, f := range files {
 			tc, err := testcase.Load(f)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(2)
+				return err
 			}
 			cases = append(cases, tc)
 		}

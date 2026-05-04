@@ -160,6 +160,7 @@ var excludedNames = map[string]bool{
 	"node_modules": true,
 	".gitignore":   true,
 	"dist":         true,
+	"tests":        true,
 }
 
 // Pack creates a zip archive of the skill directory at destPath.

@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/nyamage/skraft/internal/skill"
@@ -95,5 +96,36 @@ func TestPackSkill_ExcludedNames(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestPackSkill_ExcludesTestsDir(t *testing.T) {
+	dir := t.TempDir()
+	s := skill.Skill{DirName: "my-skill", Dir: dir}
+	testsDir := filepath.Join(dir, "tests")
+	if err := os.MkdirAll(testsDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte("# skill"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(testsDir, "test.yaml"), []byte("id: t"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	dest := filepath.Join(dir, "out.zip")
+	if err := skill.Pack(s, dest); err != nil {
+		t.Fatalf("Pack: %v", err)
+	}
+
+	zr, err := zip.OpenReader(dest)
+	if err != nil {
+		t.Fatalf("open zip: %v", err)
+	}
+	defer zr.Close()
+	for _, f := range zr.File {
+		if strings.HasPrefix(f.Name, "tests/") {
+			t.Errorf("zip contains %q — tests/ should be excluded", f.Name)
+		}
 	}
 }
